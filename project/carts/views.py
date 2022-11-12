@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from store.models import *
 from .models import *
 from django.http import HttpResponse
@@ -13,6 +13,14 @@ def _cart_id(request):
 
 def add_cart(request, product_id):
     product = Product.objects.get(id=product_id)
+
+#   Hata yakalama, yazdığımız beklenmedik durumlarda karşılaşacağımız hatalarda programın hata vermesi ya da kendini durdurması yerine 
+# hataya kendi istediğimiz şekilde cevap vermesini sağlama durumudur. Hata yakalama program yazmanın önemli bir parçasıdır.
+# Python’da hata yakalamayı try – except blokları ile yapıyoruz. 
+# try: 
+#   programın ana kodları
+# except:
+#   hata olduğunda işletilecek kodlar
     
     try:
         cart = Cart.objects.get(cart_id=_cart_id(request)) 
@@ -26,7 +34,8 @@ def add_cart(request, product_id):
         cart_item = CartItem.objects.get(product=product, cart=cart)
         cart_item.quantity += 1
         cart_item.save()
-    except CartItem.DoesNotExist:
+    except CartItem.DoesNotExist: # Django provides a DoesNotExist exception as an attribute of each model class to identify the class 
+        #of object that could not be found, allowing you to catch exceptions for a particular model class. 
         cart_item = CartItem.objects.create(
             product = product,
             quantity = 1,
@@ -35,7 +44,39 @@ def add_cart(request, product_id):
         cart_item.save()
     return redirect('cart')
 
-def cart(request, total=0, quantity=0, cart_item=None):
+
+#############
+
+
+def decrement_cart(request, product_id):
+    
+    cart = Cart.objects.get(cart_id=_cart_id(request)) 
+    product = get_object_or_404(Product, id=product_id)
+    cart_item = CartItem.objects.get(product=product, cart=cart)
+    if cart_item.quantity > 1 :
+        cart_item.quantity -= 1
+        cart_item.save()
+    else :
+        cart_item.delete()
+    return redirect('cart')
+
+
+#############
+
+
+def remove_cart_item(request, product_id):
+
+    cart = Cart.objects.get(cart_id = _cart_id(request))
+    product = get_object_or_404(Product, id=product_id)
+    cart_item = CartItem.objects.get(product=product, cart=cart)
+    cart_item.delete()
+    return redirect('cart')
+
+
+#############
+
+
+def cart(request, total=0, quantity=0, cart_items=None):
 
     try:
         cart = Cart.objects.get(cart_id=_cart_id(request))
@@ -43,6 +84,8 @@ def cart(request, total=0, quantity=0, cart_item=None):
         for i in cart_items:
             total += (i.product.price * i.quantity)
             quantity += i.quantity
+        tax = (3*total)/100
+        grand_total = total+tax
             
     except ObjectDoesNotExist:
         pass
@@ -51,6 +94,8 @@ def cart(request, total=0, quantity=0, cart_item=None):
         'total' : total,
         'quantity' : quantity,
         'cart_items' : cart_items,
+        'tax' : tax,
+        'grand_total' : grand_total
     }
 
 
