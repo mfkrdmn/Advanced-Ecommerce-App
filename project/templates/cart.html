@@ -41,10 +41,15 @@
        
 
                     <a href="{{i.product.get_url}}" class="title text-dark">{{i.product.product_name}}</a>
-
                  
 
-                    <p class="text-muted small">Color: 25 Mpx <br> Size: Canon</p>
+                    <p class="text-muted small">
+                        {% if i.variations.all %}
+                            {% for item in i.variations.all %}
+                                {{ item.variation_category | capfirst }} : {{ item.variation_value | capfirst }} <br>
+                            {% endfor %}
+                        {% endif %}
+                    </p>
                 </figcaption>
             </figure>
         </td>
